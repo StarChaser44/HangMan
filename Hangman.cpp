@@ -12,7 +12,7 @@ private:
 	std::string wordInPlay;
 	std::vector<std::string> playableWords{ "fox", "catch" "attack", "smack" };
 	std::vector<char> nonPlayableLetters;
-	std::vector<char> playedLetters;
+	std::vector<char> correctLetters;
 	bool inGame;
 	bool didWin{ false };
 	uint8_t guesses{ 6 };
@@ -36,7 +36,7 @@ public:
 		wordInPlay = playableWords.at(randomIndex);
 	}
 	const void cheat() {
-		std::cout << "Here is the word: " + wordInPlay << "You didn't have to cheat! "<< std::endl;
+		std::cout << "Here is the word: " + wordInPlay << " You didn't have to cheat! "<< std::endl;
 	}
 	
 	const std::string getWord() {
@@ -67,42 +67,53 @@ public:
 		}
 	}
 
-	const bool letterGuess(char* userLetter) {
-		std::size_t found = wordInPlay.find(*userLetter);
+	const bool letterGuess(char userLetter) {
+		std::size_t found = wordInPlay.find(userLetter);
 		if (found == std::string::npos) {
 			--guesses;
-			if (guesses < 1) inGame = false;
-			nonPlayableLetters.push_back(*userLetter);
+			if (guesses == 0) inGame = false;
+			nonPlayableLetters.push_back(userLetter);
 			return false;
 		}
 		else {
-			int index = -1;
-			for (int i = 0; i < playedLetters.size(); ++i) {
-				if (*userLetter == playedLetters.at(i)) {
-					index = i;
+			if (found > 0) {
+				correctLetters.push_back(userLetter);
+				unsigned int count{0};
+				for (unsigned int i = 0; i < correctLetters.size(); ++i) {
+					if (userLetter == correctLetters.at(i)) {
+						(++count);
+					}
 				}
+				if (count > 1) {
+					std::cout << "You already played that character, try again. No Penalty." << std::endl;
+					correctLetters.pop_back();
+				}
+				
 			}
-			if (index == -1) {
-				playedLetters.push_back(*userLetter);
-			}
-			else {
-				std::cout << "You already played that character, try again. No Penalty." << std::endl;
-			}
+			
 			return true;
+		}
+	}
+
+	void printArray() {
+		for (int i = 0; i < correctLetters.size(); ++i) {
+			std::cout << correctLetters.at(i) << " ";
 		}
 	}
 
 	const void printWord() {
 		bool found{ false };
-		char letter;
 		for (std::size_t i = 0; i < wordInPlay.size(); ++i) {
-			for (std::size_t j = 0; j < playedLetters.size(); ++j) {
-				if (wordInPlay.at(i) == playedLetters.at(j)) {
-					std::cout << wordInPlay.at(i) << " " << std::endl;
+			for (std::size_t j = 0; j < correctLetters.size(); ++j) {
+				if (wordInPlay.at(i) == correctLetters.at(j)) {
+					std::cout << correctLetters.at(j) << " " << std::endl;
 					found = true;
-					letter = wordInPlay.at(i);
+				}
+				else {
+					found = false;
 				}
 			}
+			
 			if (!found) {
 				std::cout << "_ ";
 			}
@@ -121,48 +132,66 @@ int main()
 {
 	bool didCheat{ false };
 	HangMan game;
-	while (!game.winner() && game.isInGame()) {
-		std::cout << "Weclome to hang man, this game will be pretty easy. Here are the commands required to play the game. Enjoy!" << std::endl;
-		std::cout << "You have a " << game.getWordLength() << " letter word" << std::endl;
-		menu();
-		int choice;
-		std::cout << "Enter a choice: ";
-		std::string* userWord{ nullptr };
-		char* letter{ nullptr };
-		std::cin >> choice;
+
+	std::cout << "Weclome to hang man, this game will be pretty easy. Here are the commands required to play the game. Enjoy!" << std::endl;
+	std::cout << "You have a " << game.getWordLength() << " letter word" << std::endl;
+	menu();
+	int choice;
+	std::cout << "Enter a choice: ";
+	std::string userWord;
+	char letter;
+	std::cin >> choice;
+	while (game.winner() != true && game.isInGame() == true) {
 		switch (choice) {
 		case 1:
 			game.printWord();
 			std::cout << "Enter a word: " << std::endl;
-			//std::string* userWord{ nullptr };
-			std::cin >> *userWord;
-			if (!game.userWordGuess(*userWord)) {
+			std::cin >> userWord;
+			if (!game.userWordGuess(userWord)) {
 				std::cout << "Sorry, that guess was incorrect, you now have" << game.getGuesses() << " guesses left" <<std::endl;
 			}
-			// userWord;
+			else {
+				std::cout << "Congrats, you win!";
+			}
 			break;
 		case 2:
 			game.printWord();
 			std::cout << "Enter a letter: " << std::endl;
-			//char* letter{ nullptr };
-			std::cin >> *letter;
+			std::cin >> letter;
 			if (!game.letterGuess(letter)) {
 				std::cout << "Sorry, that guess was incorrect, you now have" << game.getGuesses() << " guesses left" << std::endl;
 			}
 			else {
 				std::cout << "That's correct, keep going!" << std::endl;
 			}
-			//delete letter;
 			break;
 		case 3:
 			game.cheat();
 			didCheat = true;
 			break;
+		default:
+			std::cout << "Invalid option" << std::endl;
+			break;
 		}
-		delete userWord;
-		delete letter;
-	
+		game.printArray();
+
+		if (game.winner() == false) {
+			menu();
+			if (choice == 1) {
+				std::cout << "Guess again or choose another option: ";
+			}
+			else if (choice == 2) {
+				std::cout << "Guess another letter or choose another option: ";
+			}
+			else {
+				std::cout << "Choose another option: ";
+			}
+			std::cin >> choice;
+		}
 	}
+	//delete letter;
+
+	//std::cout << " Exiting game" << std::endl;
 	if (game.winner()) {
 		if (didCheat) {
 			std::cout << "This doesn't count. Try again without cheating!" << std::endl;
@@ -179,17 +208,3 @@ int main()
 	system("pause");
 	return 0;
 }
-
-
-
-
-// Run program: Ctrl + F5 or Debug > Start Without Debugging menu
-// Debug program: F5 or Debug > Start Debugging menu
-
-// Tips for Getting Started: 
-//   1. Use the Solution Explorer window to add/manage files
-//   2. Use the Team Explorer window to connect to source control
-//   3. Use the Output window to see build output and other messages
-//   4. Use the Error List window to view errors
-//   5. Go to Project > Add New Item to create new code files, or Project > Add Existing Item to add existing code files to the project
-//   6. In the future, to open this project again, go to File > Open > Project and select the .sln file
